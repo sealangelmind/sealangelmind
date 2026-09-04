@@ -9,7 +9,7 @@ await app.register(helmet);
 await app.register(cors, { origin: true });
 
 const envelope = (data: unknown) => ({ ok: true, data });
-const notImplemented = (capability: string) => ({ ok: false, error: 'CAPABILITY_GUARDED', capability, message: 'This capability is intentionally non-operational in the base platform. Use an approved laboratory adapter.' });
+const guarded = (capability: string) => ({ ok: false, error: 'CAPABILITY_GUARDED', capability, message: 'This capability is intentionally non-operational in the base platform. Use an approved laboratory adapter.' });
 
 app.get('/health', async () => envelope({ status: 'healthy', version: '4.0.0' }));
 app.get('/api/v1/health', async () => envelope({ status: 'healthy', version: '4.0.0' }));
@@ -30,7 +30,6 @@ app.post('/api/v1/utf/runners/:id/execute', async (req, reply) => {
 
 app.post('/api/v1/ai/analyze', async (req) => envelope({ status: 'queued', request: req.body ?? null }));
 app.get('/api/v1/ai/providers', async () => envelope([{ id: 'managed', status: 'not_configured' }]));
-
 app.get('/api/v1/knowledge', async () => envelope({ nodes: [], edges: [], message: 'Knowledge graph ready for evidence/finding relations.' }));
 app.get('/api/v1/findings', async () => envelope([]));
 app.get('/api/v1/evidence', async () => envelope([]));
@@ -41,15 +40,15 @@ app.get('/api/v1/notifications', async () => envelope([]));
 app.get('/api/v1/audit', async () => envelope([]));
 
 for (const route of [
-  '/api/v1/redteam/implants','/api/v1/redteam/implants/:id/beacon','/api/v1/redteam/implants/:id/command',
-  '/api/v1/redteam/phishing/campaigns','/api/v1/redteam/phishing/campaigns/:id/send',
-  '/api/v1/redteam/operations/:id/exfil','/api/v1/redteam/operations/:id/persistence',
-]) {
-  app.all(route, async (_req, reply) => reply.code(403).send(notImplemented('offensive-operation')));
-}
+  '/api/v1/redteam/implants', '/api/v1/redteam/implants/:id/beacon', '/api/v1/redteam/implants/:id/command',
+  '/api/v1/redteam/phishing/campaigns', '/api/v1/redteam/phishing/campaigns/:id/send',
+  '/api/v1/redteam/operations/:id/exfil', '/api/v1/redteam/operations/:id/persistence',
+]) app.all(route, async (_req, reply) => reply.code(403).send(guarded('offensive-operation')));
 
-for (const capability of DENIED_CAPABILITIES) {
-  app.post(`/api/v1/guard/${capability}`, async (_req, reply) => reply.code(403).send(notImplemented(capability)));
-}
+for (const capability of DENIED_CAPABILITIES) app.post(`/api/v1/guard/${capability}`, async (_req, reply) => reply.code(403).send(guarded(capability)));
+
+// Route-compatible fallback keeps the API surface aligned with the V4 blueprint while
+// concrete persistence/auth handlers are added behind the same governance boundary.
+app.all('/api/v1/*', async (req, reply) => reply.code(501).send({ ok: false, error: 'ROUTE_SCAFFOLD', method: req.method, path: req.url, message: 'Endpoint is declared by the V4 route surface but not yet backed by persistence.' }));
 
 await app.listen({ port: Number(process.env.PORT ?? 8080), host: '0.0.0.0' });

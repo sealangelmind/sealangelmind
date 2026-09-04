@@ -2,8 +2,8 @@ import { SIDEBAR, ROUTE_AREAS } from '@angelmind/shared';
 
 function label(value: string) { return value.replaceAll('-', ' ').replace(/\b\w/g, m => m.toUpperCase()); }
 
-export default async function Page({ params }: { params: Promise<{ slug?: string[] }> }) {
-  const p = await params;
+export default function Page({ params }: { params: { slug?: string[] } }) {
+  const p = params;
   const path = '/' + (p.slug ?? []).join('/');
   const isPublic = path === '/' || path.startsWith('/product') || path.startsWith('/features') || path.startsWith('/how-it-works') || path.startsWith('/pricing') || path.startsWith('/legal');
   const title = path === '/' ? 'Angelmind V4.0' : label((p.slug ?? ['dashboard']).at(-1) ?? 'dashboard');

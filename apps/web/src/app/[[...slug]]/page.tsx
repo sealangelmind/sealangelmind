@@ -2,6 +2,10 @@ import { SIDEBAR, ROUTE_AREAS } from '@angelmind/shared';
 
 function label(value: string) { return value.replaceAll('-', ' ').replace(/\b\w/g, m => m.toUpperCase()); }
 
+export function generateStaticParams() {
+  return ROUTE_AREAS.filter(Boolean).map(route => ({ slug: route.split('/').filter(Boolean) }));
+}
+
 export default function Page({ params }: { params: { slug?: string[] } }) {
   const p = params;
   const path = '/' + (p.slug ?? []).join('/');

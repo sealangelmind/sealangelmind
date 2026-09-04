@@ -1,1 +1,1 @@
-{"name":"@angelmind/shared","version":"4.0.0","private":true,"type":"module","main":"src/blueprint.ts","types":"src/blueprint.ts"}
+{"name":"@angelmind/shared","version":"4.0.0","private":true,"type":"module","main":"dist/blueprint.js","types":"dist/blueprint.d.ts","exports":{".":{"types":"./dist/blueprint.d.ts","import":"./dist/blueprint.js"}},"scripts":{"build":"tsc -p tsconfig.json","typecheck":"tsc --noEmit -p tsconfig.json"},"devDependencies":{"typescript":"latest"}}

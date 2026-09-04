@@ -1,0 +1,238 @@
+generator client { provider = "prisma-client-js" }
+
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+model User { id String @id @default(cuid()); email String @unique; passwordHash String; fullName String; avatarUrl String?; role String @default("member"); status String @default("active"); lastLoginAt DateTime?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+model Session { id String @id @default(cuid()); userId String; tokenHash String @unique; expiresAt DateTime; ipAddress String?; userAgent String?; deviceFingerprint String?; isActive Boolean @default(true); createdAt DateTime @default(now()) }
+model MFADevice { id String @id @default(cuid()); userId String; type String; secret String; backupCodes String[]; isActive Boolean @default(true); createdAt DateTime @default(now()) }
+model ApiKey { id String @id @default(cuid()); userId String; name String; keyHash String @unique; keyPrefix String; scopes String[]; lastUsedAt DateTime?; expiresAt DateTime?; isActive Boolean @default(true); createdAt DateTime @default(now()) }
+model SecurityEvent { id String @id @default(cuid()); userId String?; type String; description String; ipAddress String?; userAgent String?; metadata Json?; createdAt DateTime @default(now()) }
+
+model Organization { id String @id @default(cuid()); name String; slug String @unique; plan String @default("free"); status String @default("active"); createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+model Plan { id String @id @default(cuid()); name String; description String?; limits Json; features Json; createdAt DateTime @default(now()) }
+model Entitlement { id String @id @default(cuid()); organizationId String; key String; value Json; createdAt DateTime @default(now()) }
+model Workspace { id String @id @default(cuid()); organizationId String; name String; slug String; description String?; settings Json?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt; @@unique([organizationId, slug]) }
+model WorkspaceSetting { id String @id @default(cuid()); workspaceId String @unique; settings Json; updatedAt DateTime @updatedAt }
+model TeamMember { id String @id @default(cuid()); workspaceId String; userId String; role String; createdAt DateTime @default(now()); @@unique([workspaceId, userId]) }
+model TeamRole { id String @id @default(cuid()); workspaceId String; name String; permissions String[]; createdAt DateTime @default(now()) }
+model Invitation { id String @id @default(cuid()); workspaceId String; email String; role String; tokenHash String @unique; expiresAt DateTime; acceptedAt DateTime?; createdAt DateTime @default(now()) }
+model InvitationLog { id String @id @default(cuid()); invitationId String; action String; metadata Json?; createdAt DateTime @default(now()) }
+model Subscription { id String @id @default(cuid()); organizationId String; provider String; externalId String?; status String; currentPeriodEnd DateTime?; createdAt DateTime @default(now()) }
+model Invoice { id String @id @default(cuid()); organizationId String; externalId String?; amount Float; currency String @default("USD"); status String; createdAt DateTime @default(now()) }
+model UsageRecord { id String @id @default(cuid()); organizationId String; workspaceId String?; metric String; quantity Float; metadata Json?; createdAt DateTime @default(now()) }
+model QuotaLimit { id String @id @default(cuid()); planId String; metric String; limit Float; createdAt DateTime @default(now()) }
+model QuotaUsage { id String @id @default(cuid()); workspaceId String; metric String; quantity Float; periodStart DateTime; periodEnd DateTime; updatedAt DateTime @updatedAt }
+
+model DiscoveryJob { id String @id @default(cuid()); workspaceId String; status String; scope Json; startedAt DateTime?; finishedAt DateTime?; createdAt DateTime @default(now()) }
+model DiscoveryResult { id String @id @default(cuid()); jobId String; assetId String?; payload Json; createdAt DateTime @default(now()) }
+model Asset { id String @id @default(cuid()); workspaceId String; name String; type String; identifier String; environment String?; scope String?; status String @default("active"); metadata Json?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt; @@index([workspaceId, type]) }
+model AssetType { id String @id @default(cuid()); name String @unique; description String? }
+model AssetTag { id String @id @default(cuid()); assetId String; tag String; @@unique([assetId, tag]) }
+model AssetRelation { id String @id @default(cuid()); fromAssetId String; toAssetId String; relation String; metadata Json?; createdAt DateTime @default(now()); @@unique([fromAssetId, toAssetId, relation]) }
+model AssetPath { id String @id @default(cuid()); workspaceId String; path Json; impactScore Float?; createdAt DateTime @default(now()) }
+model ShadowAsset { id String @id @default(cuid()); workspaceId String; identifier String; source String; metadata Json?; firstSeenAt DateTime @default(now()); lastSeenAt DateTime @default(now()) }
+model ShadowAlert { id String @id @default(cuid()); shadowAssetId String; severity String; status String @default("open"); createdAt DateTime @default(now()) }
+model AssetSnapshot { id String @id @default(cuid()); assetId String; snapshot Json; hash String; createdAt DateTime @default(now()) }
+model AssetChange { id String @id @default(cuid()); assetId String; before Json; after Json; changeType String; createdAt DateTime @default(now()) }
+model Technology { id String @id @default(cuid()); name String @unique; vendor String?; metadata Json? }
+model TechnologyVersion { id String @id @default(cuid()); technologyId String; version String; eolAt DateTime?; metadata Json? }
+
+model SurfaceMap { id String @id @default(cuid()); workspaceId String; name String; status String; createdAt DateTime @default(now()) }
+model SurfaceNode { id String @id @default(cuid()); surfaceMapId String; assetId String?; nodeType String; data Json; createdAt DateTime @default(now()) }
+model ExposureFinding { id String @id @default(cuid()); workspaceId String; assetId String; severity String; title String; status String; createdAt DateTime @default(now()) }
+model ExposureDetail { id String @id @default(cuid()); exposureFindingId String; detail Json; createdAt DateTime @default(now()) }
+model Subdomain { id String @id @default(cuid()); workspaceId String; name String; source String; status String; createdAt DateTime @default(now()) }
+model SubdomainHistory { id String @id @default(cuid()); subdomainId String; event String; metadata Json?; createdAt DateTime @default(now()) }
+model Certificate { id String @id @default(cuid()); workspaceId String; subject String; issuer String; expiresAt DateTime; fingerprint String; createdAt DateTime @default(now()) }
+model CertChain { id String @id @default(cuid()); certificateId String; chain Json; createdAt DateTime @default(now()) }
+model CloudExposure { id String @id @default(cuid()); workspaceId String; provider String; resource String; severity String; metadata Json?; createdAt DateTime @default(now()) }
+model CloudResource { id String @id @default(cuid()); workspaceId String; provider String; resourceId String; type String; metadata Json? }
+model CodeLeak { id String @id @default(cuid()); workspaceId String; repository String; kind String; status String; secretFingerprint String?; createdAt DateTime @default(now()) }
+model LeakRepository { id String @id @default(cuid()); workspaceId String; provider String; externalId String; url String; metadata Json? }
+model DarkWebMention { id String @id @default(cuid()); workspaceId String; sourceId String; keyword String; url String?; contentHash String; createdAt DateTime @default(now()) }
+model MentionSource { id String @id @default(cuid()); name String; url String?; trustScore Float? }
+
+model CVE { id String @id @default(cuid()); cveId String @unique; description String; severity String; publishedAt DateTime?; modifiedAt DateTime?; cvss Json?; references Json? }
+model CVEDetail { id String @id @default(cuid()); cveId String; detail Json; createdAt DateTime @default(now()) }
+model CVEReference { id String @id @default(cuid()); cveId String; url String; source String? }
+model ExploitEntry { id String @id @default(cuid()); cveId String?; source String; externalId String; url String?; metadata Json?; createdAt DateTime @default(now()) }
+model ExploitMapping { id String @id @default(cuid()); exploitEntryId String; cveId String; confidence Float }
+model ZeroDay { id String @id @default(cuid()); workspaceId String; title String; status String; severity String?; metadata Json?; createdAt DateTime @default(now()) }
+model ZeroDayStatus { id String @id @default(cuid()); zeroDayId String; status String; notes String?; createdAt DateTime @default(now()) }
+model PoC { id String @id @default(cuid()); workspaceId String; title String; language String?; storageKey String?; safetyStatus String @default("quarantined"); createdAt DateTime @default(now()) }
+model PoCTestResult { id String @id @default(cuid()); pocId String; environment String; result Json; createdAt DateTime @default(now()) }
+model VulnKBEntry { id String @id @default(cuid()); workspaceId String; title String; body String; categoryId String?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+model VulnKBCategory { id String @id @default(cuid()); name String @unique; description String? }
+model PatchAnalysis { id String @id @default(cuid()); workspaceId String; title String; rootCause String?; metadata Json?; createdAt DateTime @default(now()) }
+model PatchDiff { id String @id @default(cuid()); patchAnalysisId String; beforeHash String; afterHash String; diffText String; createdAt DateTime @default(now()) }
+
+model ToolModule { id String @id; name String; version String; category String; tier Int; riskLevel String; approvalRequired Boolean; executionMode String; manifest Json; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+model ToolExecution { id String @id @default(cuid()); workspaceId String; toolId String; target Json; status String; output Json?; startedAt DateTime?; finishedAt DateTime?; createdAt DateTime @default(now()) }
+model Observation { id String @id @default(cuid()); workspaceId String; executionId String?; rawOutput Json; createdAt DateTime @default(now()) }
+
+model Operation { id String @id @default(cuid()); workspaceId String; name String; objective String?; status String; scope Json; createdAt DateTime @default(now()) }
+model OperationObjective { id String @id @default(cuid()); operationId String; title String; description String?; status String }
+model ROE { id String @id @default(cuid()); operationId String @unique; document Json; approvedAt DateTime? }
+model C2Server { id String @id @default(cuid()); workspaceId String; name String; status String; metadata Json? }
+model C2Listener { id String @id @default(cuid()); c2ServerId String; name String; status String; endpoint String? }
+model C2Domain { id String @id @default(cuid()); c2ServerId String; hostname String; status String }
+model C2Implant { id String @id @default(cuid()); operationId String; name String; status String; safetyMode String @default("non-operational") }
+model C2ImplantConfig { id String @id @default(cuid()); implantId String; config Json }
+model C2Beacon { id String @id @default(cuid()); implantId String; receivedAt DateTime @default(now()); metadata Json? }
+model PhishingCampaign { id String @id @default(cuid()); workspaceId String; name String; status String; safetyMode String @default("simulation-only"); createdAt DateTime @default(now()) }
+model PhishingEmail { id String @id @default(cuid()); campaignId String; subject String; template String; simulationOnly Boolean @default(true) }
+model PhishingClick { id String @id @default(cuid()); campaignId String; recipientRef String; clickedAt DateTime @default(now()) }
+model SEngTarget { id String @id @default(cuid()); campaignId String; profile Json; }
+model SEngPretext { id String @id @default(cuid()); campaignId String; scenario String; backstory String? }
+model SEngInteraction { id String @id @default(cuid()); targetId String; event String; createdAt DateTime @default(now()) }
+model PhysicalTest { id String @id @default(cuid()); operationId String; type String; status String; notes String? }
+model PhysicalFinding { id String @id @default(cuid()); physicalTestId String; title String; severity String; description String }
+model Pivot { id String @id @default(cuid()); operationId String; name String; status String }
+model Tunnel { id String @id @default(cuid()); pivotId String; protocol String; status String }
+model Relay { id String @id @default(cuid()); pivotId String; endpoint String; status String }
+model ExfilJob { id String @id @default(cuid()); operationId String; status String @default("disabled"); metadata Json? }
+model ExfilChannel { id String @id @default(cuid()); exfilJobId String; channelType String; status String }
+model StagedData { id String @id @default(cuid()); exfilJobId String; storageKey String; bytes Int; status String }
+model PersistenceMethod { id String @id @default(cuid()); name String; platform String; description String? }
+model PersistenceInstance { id String @id @default(cuid()); operationId String; methodId String; status String @default("disabled") }
+model EvasionTechnique { id String @id @default(cuid()); name String; description String? }
+model EvasionConfig { id String @id @default(cuid()); operationId String; techniqueId String; status String @default("disabled") }
+model OPSECProfile { id String @id @default(cuid()); operationId String; mode String; policy Json }
+model BurnNotice { id String @id @default(cuid()); operationId String; reason String; createdAt DateTime @default(now()) }
+
+model Exercise { id String @id @default(cuid()); workspaceId String; name String; status String; timeline Json?; createdAt DateTime @default(now()) }
+model ExerciseObjective { id String @id @default(cuid()); exerciseId String; title String; status String }
+model Scenario { id String @id @default(cuid()); workspaceId String; name String; mitreMapping Json?; createdAt DateTime @default(now()) }
+model MITREMapping { id String @id @default(cuid()); scenarioId String; techniqueId String; tactic String? }
+model DetectionRule { id String @id @default(cuid()); workspaceId String; name String; format String; content String; createdAt DateTime @default(now()) }
+model RuleTest { id String @id @default(cuid()); detectionRuleId String; result Json; createdAt DateTime @default(now()) }
+model DetectionGap { id String @id @default(cuid()); exerciseId String; finding String; action String; detectionStatus String; improvement String?; createdAt DateTime @default(now()) }
+model GapAnalysis { id String @id @default(cuid()); detectionGapId String; analysis Json; createdAt DateTime @default(now()) }
+model ImprovementItem { id String @id @default(cuid()); workspaceId String; title String; description String?; status String }
+model ImprovementStatus { id String @id @default(cuid()); improvementItemId String; status String; changedAt DateTime @default(now()) }
+model PTMetric { id String @id @default(cuid()); workspaceId String; name String; value Float; measuredAt DateTime @default(now()) }
+model PTScorecard { id String @id @default(cuid()); exerciseId String; score Json; createdAt DateTime @default(now()) }
+
+model BountyProgram { id String @id @default(cuid()); workspaceId String; name String; description String; scope Json; rewards Json; status String @default("draft"); createdBy String; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+model ResearcherProfile { id String @id @default(cuid()); userId String @unique; skills String[]; reputation Int @default(0); joinedAt DateTime @default(now()); ndaSignedAt DateTime?; verifiedAt DateTime? }
+model ResearcherSkill { id String @id @default(cuid()); researcherId String; skill String; level String }
+model Submission { id String @id @default(cuid()); programId String; researcherId String; title String; description String; severity String; status String @default("pending"); reward Float?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+model SubmissionStatus { id String @id @default(cuid()); submissionId String; status String; note String?; createdAt DateTime @default(now()) }
+model Reward { id String @id @default(cuid()); submissionId String; amount Float; reason String; paidAt DateTime?; createdAt DateTime @default(now()) }
+model RewardCalculation { id String @id @default(cuid()); submissionId String; calculation Json; createdAt DateTime @default(now()) }
+model LeaderboardEntry { id String @id @default(cuid()); programId String; researcherId String; points Int @default(0); totalReward Float @default(0); updatedAt DateTime @updatedAt }
+model ReputationHistory { id String @id @default(cuid()); researcherId String; delta Int; reason String; createdAt DateTime @default(now()) }
+model Disclosure { id String @id @default(cuid()); submissionId String; cveId String?; timeline Json; status String @default("pending"); createdAt DateTime @default(now()) }
+model DisclosureTimeline { id String @id @default(cuid()); disclosureId String; event String; at DateTime @default(now()) }
+model LegalDoc { id String @id @default(cuid()); programId String; type String; content String; version Int @default(1); createdAt DateTime @default(now()) }
+model ResearcherAgreement { id String @id @default(cuid()); researcherId String; agreementType String; signedAt DateTime?; documentKey String? }
+model HallOfFameEntry { id String @id @default(cuid()); programId String; researcherId String; citation String; publishedAt DateTime? }
+
+model Finding { id String @id @default(cuid()); workspaceId String; title String; description String; impact String?; severity String; status String @default("open"); assigneeId String?; assetId String?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+model FindingStatusHistory { id String @id @default(cuid()); findingId String; status String; note String?; changedBy String?; createdAt DateTime @default(now()) }
+model Evidence { id String @id @default(cuid()); workspaceId String; title String; type String; content Json; confidence Float?; hash String; createdAt DateTime @default(now()) }
+model EvidenceFile { id String @id @default(cuid()); evidenceId String; storageKey String; mimeType String; size Int; hash String; createdAt DateTime @default(now()) }
+model EvidenceHash { id String @id @default(cuid()); evidenceId String @unique; algorithm String; hash String; createdAt DateTime @default(now()) }
+model CustodyChain { id String @id @default(cuid()); evidenceId String; previousHash String?; currentHash String; createdAt DateTime @default(now()) }
+model CustodyTransfer { id String @id @default(cuid()); custodyChainId String; fromActor String?; toActor String?; createdAt DateTime @default(now()) }
+model SeverityScore { id String @id @default(cuid()); findingId String; cvss Float?; customScore Float?; createdAt DateTime @default(now()) }
+model ImpactAssessment { id String @id @default(cuid()); findingId String; businessImpact String; likelihood String; createdAt DateTime @default(now()) }
+model Remediation { id String @id @default(cuid()); findingId String; guidance String; status String; dueAt DateTime? }
+model RemediationVerify { id String @id @default(cuid()); remediationId String; result Json; verifiedAt DateTime @default(now()) }
+model FalsePositive { id String @id @default(cuid()); findingId String; reason String; createdAt DateTime @default(now()) }
+model FPAnalysis { id String @id @default(cuid()); falsePositiveId String; analysis Json; createdAt DateTime @default(now()) }
+model DuplicateGroup { id String @id @default(cuid()); workspaceId String; title String; createdAt DateTime @default(now()) }
+model DuplicateMatch { id String @id @default(cuid()); duplicateGroupId String; findingId String; confidence Float; }
+
+model Report { id String @id @default(cuid()); workspaceId String; researchId String?; title String; status String; content Json?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+model ReportTemplate { id String @id @default(cuid()); workspaceId String?; name String; content Json; createdAt DateTime @default(now()) }
+model ReportSection { id String @id @default(cuid()); reportId String; title String; content Json; order Int }
+model PDFExport { id String @id @default(cuid()); reportId String; storageKey String?; status String; createdAt DateTime @default(now()) }
+model PDFWatermark { id String @id @default(cuid()); pdfExportId String; text String; createdAt DateTime @default(now()) }
+model ClientPortal { id String @id @default(cuid()); organizationId String; slug String @unique; status String @default("active") }
+model PortalAccess { id String @id @default(cuid()); clientPortalId String; principalId String; role String; createdAt DateTime @default(now()) }
+model ExecSummary { id String @id @default(cuid()); reportId String; summary String; riskScore Float? }
+model RiskDashboard { id String @id @default(cuid()); workspaceId String; metrics Json; createdAt DateTime @default(now()) }
+model TechDetail { id String @id @default(cuid()); reportId String; content Json }
+model Appendix { id String @id @default(cuid()); reportId String; content Json }
+model Roadmap { id String @id @default(cuid()); workspaceId String; title String; status String; createdAt DateTime @default(now()) }
+model RoadmapMilestone { id String @id @default(cuid()); roadmapId String; title String; dueAt DateTime?; status String }
+model ComparisonReport { id String @id @default(cuid()); workspaceId String; baselineReportId String; currentReportId String; createdAt DateTime @default(now()) }
+model DeltaFinding { id String @id @default(cuid()); comparisonReportId String; findingId String; changeType String; }
+
+model IntelFeed { id String @id @default(cuid()); workspaceId String; name String; sourceUrl String?; status String; createdAt DateTime @default(now()) }
+model FeedSource { id String @id @default(cuid()); name String; url String; trustScore Float? }
+model IOC { id String @id @default(cuid()); workspaceId String; type String; value String; confidence Float?; createdAt DateTime @default(now()) }
+model IOCHistory { id String @id @default(cuid()); iocId String; event String; createdAt DateTime @default(now()) }
+model IOCConfidence { id String @id @default(cuid()); iocId String; score Float; rationale String? }
+model ThreatActor { id String @id @default(cuid()); workspaceId String; name String; aliases String[]; description String? }
+model ActorTTP { id String @id @default(cuid()); threatActorId String; techniqueId String; tactic String? }
+model DarkWebSource { id String @id @default(cuid()); workspaceId String; name String; url String?; enabled Boolean @default(false) }
+model DarkWebPost { id String @id @default(cuid()); darkWebSourceId String; externalId String; contentHash String; metadata Json?; createdAt DateTime @default(now()) }
+model LeakedCredential { id String @id @default(cuid()); workspaceId String; identifierHash String; sourceId String; discoveredAt DateTime @default(now()) }
+model CredentialSource { id String @id @default(cuid()); name String; provider String }
+model BrandThreat { id String @id @default(cuid()); workspaceId String; indicator String; threatType String; status String; createdAt DateTime @default(now()) }
+model BrandProtection { id String @id @default(cuid()); workspaceId String; brand String; rules Json; createdAt DateTime @default(now()) }
+model GeoThreat { id String @id @default(cuid()); workspaceId String; region String; severity String; description String? }
+model GeoAlert { id String @id @default(cuid()); geoThreatId String; status String; createdAt DateTime @default(now()) }
+model Enrichment { id String @id @default(cuid()); workspaceId String; objectType String; objectId String; data Json; createdAt DateTime @default(now()) }
+model EnrichmentSource { id String @id @default(cuid()); name String; provider String; endpoint String? }
+
+model LLMProvider { id String @id @default(cuid()); name String; status String; config Json? }
+model LLMModel { id String @id @default(cuid()); providerId String; name String; contextWindow Int?; costPer1k Float? }
+model LLMConnection { id String @id @default(cuid()); workspaceId String; providerId String; mode String; secretRef String?; status String }
+model PromptTemplate { id String @id @default(cuid()); workspaceId String?; name String; purpose String; createdAt DateTime @default(now()) }
+model PromptVersion { id String @id @default(cuid()); promptTemplateId String; version Int; prompt String; createdAt DateTime @default(now()) }
+model AIWorker { id String @id @default(cuid()); workspaceId String; name String; role String; budget Float; timeoutSec Int; status String }
+model WorkerMemory { id String @id @default(cuid()); workerId String; key String; value Json; createdAt DateTime @default(now()) }
+model WorkerAction { id String @id @default(cuid()); workerId String; action String; status String; metadata Json?; createdAt DateTime @default(now()) }
+model AIAnalysis { id String @id @default(cuid()); workspaceId String; targetType String; targetId String; output Json; confidence Float?; createdAt DateTime @default(now()) }
+model AnalysisConfidence { id String @id @default(cuid()); analysisId String; score Float; rationale String? }
+model ReportAI { id String @id @default(cuid()); reportId String; section String; output Json; createdAt DateTime @default(now()) }
+model AISuggestion { id String @id @default(cuid()); reportAIId String; suggestion String; accepted Boolean @default(false) }
+model Playbook { id String @id @default(cuid()); workspaceId String; name String; version Int @default(1); status String; steps Json; createdAt DateTime @default(now()) }
+model PlaybookRun { id String @id @default(cuid()); playbookId String; status String; context Json; createdAt DateTime @default(now()) }
+model PlaybookStep { id String @id @default(cuid()); playbookId String; order Int; condition Json?; action String }
+model AIBudget { id String @id @default(cuid()); workspaceId String; periodStart DateTime; periodEnd DateTime; budget Float }
+model AIUsage { id String @id @default(cuid()); workspaceId String; modelId String; inputTokens Int; outputTokens Int; cost Float; createdAt DateTime @default(now()) }
+model AIAlert { id String @id @default(cuid()); workspaceId String; type String; threshold Float; status String; createdAt DateTime @default(now()) }
+model ModelEval { id String @id @default(cuid()); modelId String; testCase String; score Float; createdAt DateTime @default(now()) }
+model EvalMetric { id String @id @default(cuid()); modelEvalId String; name String; value Float }
+
+model Policy { id String @id @default(cuid()); workspaceId String; name String; description String?; status String; createdAt DateTime @default(now()) }
+model PolicyRule { id String @id @default(cuid()); policyId String; rule Json; effect String }
+model ApprovalRequest { id String @id @default(cuid()); workspaceId String; resourceType String; resourceId String; riskLevel String; status String @default("pending"); createdAt DateTime @default(now()) }
+model ApprovalDecision { id String @id @default(cuid()); approvalRequestId String; decision String; decidedBy String; reason String?; createdAt DateTime @default(now()) }
+model AuditLog { id String @id @default(cuid()); workspaceId String?; actorId String?; action String; resourceType String; resourceId String?; payload Json?; previousHash String?; currentHash String; createdAt DateTime @default(now()) }
+model AuditChain { id String @id @default(cuid()); auditLogId String; chainIndex Int; chainHash String; createdAt DateTime @default(now()) }
+model Control { id String @id @default(cuid()); framework String; controlId String; title String; description String?; }
+model ControlEvidence { id String @id @default(cuid()); controlId String; evidenceId String; }
+model RetentionPolicy { id String @id @default(cuid()); workspaceId String; resourceType String; days Int; legalHoldAllowed Boolean @default(true) }
+model RetentionAction { id String @id @default(cuid()); retentionPolicyId String; resourceId String; action String; createdAt DateTime @default(now()) }
+model SecurityIncident { id String @id @default(cuid()); workspaceId String; title String; severity String; status String; timeline Json?; createdAt DateTime @default(now()) }
+model IRPlaybook { id String @id @default(cuid()); incidentId String; steps Json; }
+model Risk { id String @id @default(cuid()); workspaceId String; title String; likelihood Float; impact Float; score Float; status String }
+model RiskTreatment { id String @id @default(cuid()); riskId String; strategy String; ownerId String?; status String }
+model Vendor { id String @id @default(cuid()); organizationId String; name String; riskTier String?; createdAt DateTime @default(now()) }
+model VendorAssessment { id String @id @default(cuid()); vendorId String; questionnaire Json; score Float?; assessedAt DateTime? }
+
+model Research { id String @id @default(cuid()); workspaceId String; name String; objective String?; programId String?; scope Json; status String @default("draft"); createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+model ResearchObjective { id String @id @default(cuid()); researchId String; title String; status String }
+model ResearchHypothesis { id String @id @default(cuid()); researchId String; statement String; status String }
+model ResearchTask { id String @id @default(cuid()); researchId String; title String; status String; assigneeId String? }
+model ResearchExecution { id String @id @default(cuid()); researchId String; executionId String; status String }
+model ResearchTimeline { id String @id @default(cuid()); researchId String; event String; createdAt DateTime @default(now()) }
+model ResearchTag { id String @id @default(cuid()); researchId String; tag String; @@unique([researchId, tag]) }
+model Note { id String @id @default(cuid()); workspaceId String; authorId String?; title String; body String; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+model SavedView { id String @id @default(cuid()); workspaceId String; name String; resourceType String; query Json; createdAt DateTime @default(now()) }
+model Comment { id String @id @default(cuid()); workspaceId String; resourceType String; resourceId String; authorId String; body String; createdAt DateTime @default(now()) }
+model Mention { id String @id @default(cuid()); commentId String; userId String; createdAt DateTime @default(now()) }
+model ReviewRoom { id String @id @default(cuid()); workspaceId String; resourceType String; resourceId String; status String; createdAt DateTime @default(now()) }
+model Notification { id String @id @default(cuid()); userId String; type String; title String; body String; readAt DateTime?; metadata Json?; createdAt DateTime @default(now()) }
+model NotificationPreference { id String @id @default(cuid()); userId String; channel String; eventType String; enabled Boolean @default(true); @@unique([userId, channel, eventType]) }
+model TrustedDevice { id String @id @default(cuid()); userId String; fingerprint String; posture Json?; trustedUntil DateTime?; createdAt DateTime @default(now()) }
+model DevicePosture { id String @id @default(cuid()); trustedDeviceId String; posture Json; checkedAt DateTime @default(now()) }
+model BreakglassRequest { id String @id @default(cuid()); userId String; reason String; expiresAt DateTime; status String @default("pending"); createdAt DateTime @default(now()) }
+model BreakglassSession { id String @id @default(cuid()); requestId String; startedAt DateTime; expiresAt DateTime; revokedAt DateTime? }
+model IdentityProvider { id String @id @default(cuid()); organizationId String; type String; issuer String; status String }
+model SCIMUser { id String @id @default(cuid()); identityProviderId String; externalId String; userId String? }
